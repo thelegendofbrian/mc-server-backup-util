@@ -4,6 +4,8 @@
 /.sonar
 /.settings
 /sonar-project.properties
+/servers
+/backups
 
 # OS generated files #
 ######################

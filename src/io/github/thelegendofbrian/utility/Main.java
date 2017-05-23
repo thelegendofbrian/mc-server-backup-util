@@ -17,12 +17,11 @@ import io.github.talkarcabbage.logger.LoggerManager;
 
 public class Main {
 	
+	public static String pathToServers;
+	public static String pathToBackups;
+	
 	private static final Logger logger = LoggerManager.getInstance().getLogger("main");
-	
 	private static HashMap<File, Date> serverMap;
-	
-	public static String pathToServers = "servers";
-	public static String pathToBackups = "backups";
 	
 	public static void main(String[] args) {
 		// TODO: Use GMT instead of local time
@@ -53,6 +52,7 @@ public class Main {
 		Date lastModified;
 		for (File serverDir : serverList) {
 			lastModified = roundDateToSeconds(lastModifiedInFolder(serverDir));
+			// TODO: Format logged date
 			logger.info("Found server named: \"" + serverDir.getName() + "\" last modified: " + lastModified);
 			serverMap.put(serverDir, lastModified);
 		}
@@ -63,6 +63,7 @@ public class Main {
 		HashMap<File, Date> backupMap = new HashMap<>();
 		for (File backupDir : backupList) {
 			lastModified = roundDateToSeconds(getBackupTimeStamp(getLatestBackup(backupDir)));
+			// TODO: Format logged date
 			logger.info("Found backup for server: \"" + backupDir.getName() + "\" last modified: " + lastModified);
 			backupMap.put(backupDir, lastModified);
 		}
@@ -97,7 +98,7 @@ public class Main {
 	}
 	
 	public static Date roundDateToSeconds(Date date) {
-		long roundedDate = (date.getTime() / 100) * 100;
+		long roundedDate = (date.getTime() / 1000) * 1000;
 		return new Date(roundedDate);
 	}
 	

@@ -21,33 +21,40 @@ public class Main {
 	
 	private static HashMap<File, Date> serverMap;
 	
-	public static final String pathToServers = "servers";
-	public static final String pathToBackups = "backups";
+	public static String pathToServers = "servers";
+	public static String pathToBackups = "backups";
 	
 	public static void main(String[] args) {
-		
-		// LoggerManager.getInstance().setGlobalLoggingLevel(level);
+		// TODO: Use GMT instead of local time
 		
 		// Get config settings or make one if one doesn't exist
+		logger.info("Reading configuration file.");
+		pathToServers = "servers";
+		logger.info("Servers directory found in config: " + new File(pathToServers).getAbsolutePath());
+		pathToBackups = "backups";
+		logger.info("Backups directory found in config: " + new File(pathToBackups).getAbsolutePath());
+		// LoggerManager.getInstance().setGlobalLoggingLevel(level);
 		// TODO
 		
 		// Check if servers directory exists
+		logger.info("Checking for valid server file structure.");
 		// TODO
 		
-		// Make backup directory if it doesn't exist
+		// Make backups directory if it doesn't exist
+		logger.info("Checking for backups directory.");
 		// TODO
 		
 		// Get a list of the folders in the servers directory
 		File[] serverList = new File(pathToServers).listFiles(File::isDirectory);
 		
 		// Find the most recently changed file in each directory and store when it was last modified
+		logger.info("Checking when each server was last modified.");
 		serverMap = new HashMap<>();
+		Date lastModified;
 		for (File serverDir : serverList) {
-			try {
-				serverMap.put(serverDir, lastModifiedInFolder(serverDir));
-			} catch (IOException e) {
-				logger.log(Level.SEVERE, "Exception caught while scanning a server directory for most recently modified file: ", e);
-			}
+			lastModified = lastModifiedInFolder(serverDir);
+			logger.info("Found server named: \"" + serverDir.getName() + "\" last modified: " + lastModified);
+			serverMap.put(serverDir, lastModified);
 		}
 		
 		// Get a list of the folders in the backup directory
@@ -55,16 +62,20 @@ public class Main {
 		// Get the most recent time stamp in each backup directory
 		HashMap<File, Date> backupMap = new HashMap<>();
 		for (File backupDir : backupList) {
-			backupMap.put(backupDir, getBackupTimeStamp(getLatestBackup(backupDir)));
+			lastModified = getBackupTimeStamp(getLatestBackup(backupDir));
+			logger.info("Found backup for server: \"" + backupDir.getName() + "\" last modified: " + lastModified);
+			backupMap.put(backupDir, lastModified);
 		}
 		
 		// Check which servers have been modified since the last backup
+		logger.info("Checking which servers need to be backed up.");
 		ArrayList<File> serversToBackup = new ArrayList<>();
 		for (Map.Entry<File, Date> entry : serverMap.entrySet()) {
 			File serverFile = entry.getKey();
 		    Date serverLastModified = entry.getValue();
 		    
 			if (serverLastModified.compareTo(backupMap.get(generateBackupFileFromString(serverFile.getName()))) > 0) {
+				logger.info("Server \"" + serverFile.getName() + "\" needs to be backed up.");
 				serversToBackup.add(serverFile);
 		    }
 		}
@@ -72,56 +83,12 @@ public class Main {
 		// Iterate through the servers that need to be backed up
 		File backupFolder;
 		for (File serverFolder : serversToBackup) {
-			logger.info("Backing up: " + serverFolder.toString());
+			logger.info("Backing up server: " + serverFolder.toString());
 			backupFolder = generateBackupFileFromString(serverFolder.getName());
 			backupServer(serverFolder, backupFolder);
 		}
 		
 	}
-	
-//	private static void addDirToArchive(ZipOutputStream zos, File srcFile) {
-//		
-//		File[] files = srcFile.listFiles();
-//		
-//		logger.info("Adding directory: " + srcFile.getName());
-//		
-//		for (int i = 0; i < files.length; i++) {
-//			
-//			// if the file is directory, use recursion
-//			if (files[i].isDirectory()) {
-//				addDirToArchive(zos, files[i]);
-//				continue;
-//			}
-//			
-//			try {
-//				
-//				logger.info("Adding file: " + files[i].getName());
-//				
-//				// create byte buffer
-//				byte[] buffer = new byte[1024];
-//				
-//				FileInputStream fis = new FileInputStream(files[i]);
-//				
-//				zos.putNextEntry(new ZipEntry(files[i].getName()));
-//				
-//				int length;
-//				
-//				while ((length = fis.read(buffer)) > 0) {
-//					zos.write(buffer, 0, length);
-//				}
-//				
-//				zos.closeEntry();
-//				
-//				// Close the InputStream
-//				fis.close();
-//				
-//			} catch (IOException e) {
-//				logger.log(Level.SEVERE, "IOException : " , e);
-//			}
-//			
-//		}
-//		
-//	}
 	
 	/**
 	 * Generate the corresponding backup File location given the name of the server folder.
@@ -130,7 +97,6 @@ public class Main {
 	 */
 	public static File generateBackupFileFromString(String fileName) {
 		File file = new File(pathToBackups, fileName);
-		logger.info(file.toString());
 		return file;
 	}
 	
@@ -140,15 +106,19 @@ public class Main {
 	 * @return mostRecentDate
 	 * @throws IOException
 	 */
-	public static Date lastModifiedInFolder(File file) throws IOException {
+	public static Date lastModifiedInFolder(File file) {
 		Wrapper mostRecentTime = new Wrapper();
-		Files.find(
-				file.toPath(),
-				Integer.MAX_VALUE,
-				(filePath, fileAttr) -> true).forEach(x -> {
-					if (mostRecentTime.getValue() < x.toFile().lastModified())
-						mostRecentTime.setValue(x.toFile().lastModified());
-				});
+		try {
+			Files.find(
+					file.toPath(),
+					Integer.MAX_VALUE,
+					(filePath, fileAttr) -> true).forEach(x -> {
+						if (mostRecentTime.getValue() < x.toFile().lastModified())
+							mostRecentTime.setValue(x.toFile().lastModified());
+					});
+		} catch (IOException e) {
+			logger.log(Level.SEVERE, "Exception caught while scanning a server directory for most recently modified file: ", e);
+		}
 		
 		Date mostRecentDate = new Date(mostRecentTime.getValue());
 		

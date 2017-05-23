@@ -52,7 +52,7 @@ public class Main {
 		serverMap = new HashMap<>();
 		Date lastModified;
 		for (File serverDir : serverList) {
-			lastModified = lastModifiedInFolder(serverDir);
+			lastModified = roundDateToSeconds(lastModifiedInFolder(serverDir));
 			logger.info("Found server named: \"" + serverDir.getName() + "\" last modified: " + lastModified);
 			serverMap.put(serverDir, lastModified);
 		}
@@ -62,7 +62,7 @@ public class Main {
 		// Get the most recent time stamp in each backup directory
 		HashMap<File, Date> backupMap = new HashMap<>();
 		for (File backupDir : backupList) {
-			lastModified = getBackupTimeStamp(getLatestBackup(backupDir));
+			lastModified = roundDateToSeconds(getBackupTimeStamp(getLatestBackup(backupDir)));
 			logger.info("Found backup for server: \"" + backupDir.getName() + "\" last modified: " + lastModified);
 			backupMap.put(backupDir, lastModified);
 		}
@@ -82,12 +82,23 @@ public class Main {
 		
 		// Iterate through the servers that need to be backed up
 		File backupFolder;
-		for (File serverFolder : serversToBackup) {
-			logger.info("Backing up server: " + serverFolder.toString());
-			backupFolder = generateBackupFileFromString(serverFolder.getName());
-			backupServer(serverFolder, backupFolder);
+		if (serversToBackup.isEmpty()) {
+			logger.info("All backups were already up-to-date.");
+		} else {
+			for (File serverFolder : serversToBackup) {
+				logger.info("Backing up server: " + serverFolder.getName());
+				backupFolder = generateBackupFileFromString(serverFolder.getName());
+				backupServer(serverFolder, backupFolder);
+			}
 		}
 		
+		logger.info("Backup process complete.");
+		
+	}
+	
+	public static Date roundDateToSeconds(Date date) {
+		long roundedDate = (date.getTime() / 100) * 100;
+		return new Date(roundedDate);
 	}
 	
 	/**

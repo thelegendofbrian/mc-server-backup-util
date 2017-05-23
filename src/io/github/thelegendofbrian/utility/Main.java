@@ -1,7 +1,11 @@
 package io.github.thelegendofbrian.utility;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -10,6 +14,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.zeroturnaround.zip.ZipUtil;
@@ -28,11 +33,31 @@ public class Main {
 		
 		// Get config settings or make one if one doesn't exist
 		logger.info("Reading configuration file.");
-		pathToServers = "servers";
+		
+		Properties defaultProps = new Properties();
+		defaultProps.setProperty("logLevel", "INFO");
+		
+		Properties properties = new Properties(defaultProps);
+		properties.setProperty("serversDirectory", "");
+		properties.setProperty("backupsDirectory", "");
+		
+		File configFile = new File("config.ini");
+		loadConfig(configFile, properties);
+		saveConfig(configFile, properties);
+		
+		// Verify validity of config values
+		if ("".equals(properties.getProperty("serversDirectory")) || "".equals(properties.getProperty("backupsDirectory"))) {
+			// TODO: Add GUI and explanation of how to set up for no GUI
+			
+			logger.severe("Invalid directory configuration set.");
+			System.exit(-1);
+		}
+		
+		pathToServers = properties.getProperty("serversDirectory");
 		logger.info("Servers directory found in config: " + new File(pathToServers).getAbsolutePath());
-		pathToBackups = "backups";
+		pathToBackups = properties.getProperty("backupsDirectory");
 		logger.info("Backups directory found in config: " + new File(pathToBackups).getAbsolutePath());
-		// LoggerManager.getInstance().setGlobalLoggingLevel(level);
+		 LoggerManager.getInstance().setGlobalLoggingLevel(Level.parse(properties.getProperty("logLevel")));
 		// TODO
 		
 		// Check if servers directory exists
@@ -95,6 +120,38 @@ public class Main {
 		
 		logger.info("Backup process complete.");
 		
+	}
+	
+	/**
+	 * Attempts to load the config file into properties. If the config file doesn't exist, it will be created.
+
+	 */
+	public static void loadConfig(File configFile, Properties properties) {
+		// Try to create a config file if one doesn't exist
+		try {
+			if (configFile.createNewFile()) {
+				logger.info("Configuration file \"" + configFile.getName() + "\" created successfully.");
+			}
+		} catch (IOException e) {
+			logger.log(Level.SEVERE, "Unable to create configuration file: ", e);
+		}
+		
+		try (InputStream in = new FileInputStream(configFile)) {
+			properties.load(in);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Attempts to save the properties into the config file
+	 */
+	public static void saveConfig(File configFile, Properties properties) {
+		try (OutputStream out = new FileOutputStream(configFile)) {
+			properties.store(out, null);
+		} catch (IOException e){
+			logger.log(Level.SEVERE, "Unable to save to configuration file: ", e);
+		}
 	}
 	
 	public static Date roundDateToSeconds(Date date) {

@@ -6,6 +6,7 @@
 /sonar-project.properties
 /servers
 /backups
+config.ini
 
 # OS generated files #
 ######################

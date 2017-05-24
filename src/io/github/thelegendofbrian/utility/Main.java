@@ -165,7 +165,6 @@ public class Main {
 	
 	/**
 	 * Attempts to load the config file into properties. If the config file doesn't exist, it will be created.
-
 	 */
 	public static void loadConfig(File configFile, Properties properties) {
 		// Try to create a config file if one doesn't exist

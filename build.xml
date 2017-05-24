@@ -1,25 +1,77 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project default="create_run_jar" name="Create Runnable Jar for Project Minecraft Server Backup Utility">
-    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
-    <!--ANT 1.7 is required                                        -->
-    <!--define folder properties-->
-    <property name="dir.buildfile" value="."/>
-    <property name="dir.workspace" value="${dir.buildfile}/.."/>
-    <property name="dir.jarfile" value="${dir.buildfile}/dist"/>
-    <target name="create_run_jar">
-        <jar destfile="${dir.jarfile}/backup-utility.jar" filesetmanifest="mergewithoutmain">
-            <manifest>
-                <attribute name="Main-Class" value="io.github.thelegendofbrian.utility.Main"/>
-                <attribute name="Class-Path" value="."/>
-            </manifest>
-            <fileset dir="${dir.buildfile}/bin"/>
-            <fileset dir="${dir.buildfile}/lib"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/lib/TalkarLogger-0.2.0.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/lib/slf4j-api-1.7.25.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/lib/slf4j-simple-1.7.25.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/lib/zt-zip-1.11.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="C:/Users/thele/.p2/pool/plugins/org.junit_4.12.0.v201504281640/junit.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="C:/Users/thele/.p2/pool/plugins/org.hamcrest.core_1.3.0.v201303031735.jar"/>
-        </jar>
-    </target>
+<project default="current-number" name="mc-server-backup-util">
+
+	<property file="build_info.properties"/>
+	<property name="build.number" value="${build.major.number}.${build.minor.number}.${build.revision.number}"/>
+
+	<property name="dir.buildfile" value="."/>
+	<property name="dir.jarfile" value="${dir.buildfile}/dist"/>
+	<property name="dir.src" value="src"/>
+	<property name="dir.bin" value="bin"/>
+	<property name="dir.lib" value="lib"/>
+
+	<path id="classpath">
+		<fileset dir="${dir.lib}" includes="**/*.jar"/>
+	</path>
+
+	<target name="current-number">
+		<echo>Current build number: ${build.number}</echo>
+	</target>
+
+	<target name="major">
+		<propertyfile file="build_info.properties">
+			<entry key="build.major.number" type="int" operation="+" value="1"/>
+			<entry key="build.minor.number" type="int" value="0"/>
+			<entry key="build.revision.number" type="int" value="0"/>
+		</propertyfile>
+	</target>
+
+	<target name="minor">
+		<propertyfile file="build_info.properties">
+			<entry key="build.minor.number" type="int" operation="+" value="1"/>
+			<entry key="build.revision.number" type="int" value="0"/>
+		</propertyfile>
+	</target>
+
+	<target name="revision">
+		<propertyfile file="build_info.properties">
+			<entry key="build.revision.number" type="int" operation="+" value="1"/>
+		</propertyfile>
+	</target>
+
+	<target name="clean">
+		<delete dir="${dir.bin}"/>
+	</target>
+
+	<target name="compile">
+		<mkdir dir="${dir.bin}"/>
+		<javac destdir="${dir.bin}" classpathref="classpath" fork="yes" includeantruntime="false">
+			<src path="${dir.src}"/>
+			<exclude name="**/*Test.java"/>
+		</javac>
+	</target>
+
+	<target name="dist" depends="compile">
+		<antcall target="current-number"/>
+		<jar destfile="${dir.jarfile}/${ant.project.name}-${build.number}.jar">
+			<manifest>
+				<attribute name="Main-Class" value="io.github.thelegendofbrian.utility.Main"/>
+				<attribute name="Class-Path" value="."/>
+			</manifest>
+			<fileset dir="${dir.buildfile}/bin"/>
+			<!--zipfileset dir="./lib" includes="TalkarLogger-0.2.0.jar"/>
+			<zipfileset dir="./lib" includes="slf4j-api-1.7.25.jar"/>
+			<zipfileset dir="./lib" includes="slf4j-simple-1.7.25.jar"/>
+			<zipfileset dir="./lib" includes="zt-zip-1.11.jar"/-->
+			<zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/lib/TalkarLogger-0.2.0.jar"/>
+			<zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/lib/slf4j-api-1.7.25.jar"/>
+			<zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/lib/slf4j-simple-1.7.25.jar"/>
+			<zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/lib/zt-zip-1.11.jar" />
+		</jar>
+	</target>
+
+	<target name="run" depends="dist">
+		<java jar="${dir.jarfile}/${ant.project.name}-${build.number}.jar" dir="${dir.bin}" fork="true" />
+	</target>
+
 </project>

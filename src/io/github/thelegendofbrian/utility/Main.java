@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.zeroturnaround.zip.ZipException;
 import org.zeroturnaround.zip.ZipUtil;
 import io.github.talkarcabbage.logger.LoggerManager;
 
@@ -65,17 +67,15 @@ public class Main {
 		logger.info("Checking for valid server file structure.");
 		// TODO
 		
+		// Get a list of the folders in the servers directory
+		File[] serverList = new File(pathToServers).listFiles(File::isDirectory);
+		
 		// Make backups directory if it doesn't exist
 		logger.info("Checking for backups directory.");
 		File backupsFolder = new File(pathToBackups);
 
-		try {
-			if (backupsFolder.createNewFile()) {
-				logger.info("Backups folder \"" + backupsFolder.getName() + "\" created successfully.");
-			}
-		} catch (IOException e) {
-			logger.log(Level.SEVERE, "Unable to create backups folder: ", e);
-			System.exit(-1);
+		if (backupsFolder.mkdir()) {
+			logger.info("Backups folder \"" + backupsFolder.getName() + "\" created successfully.");
 		}
 		
 		if (!backupsFolder.canWrite()) {
@@ -83,8 +83,13 @@ public class Main {
 			System.exit(-1);
 		}
 		
-		// Get a list of the folders in the servers directory
-		File[] serverList = new File(pathToServers).listFiles(File::isDirectory);
+		File serverBackupFolder;
+		for (File server : serverList) {
+			serverBackupFolder = new File(backupsFolder.getAbsolutePath() + File.separator + server.getName());
+			if (serverBackupFolder.mkdir()) {
+				logger.info("Backup directory did not exist for \"" + server.getName() + "\". Creating directory.");
+			}
+		}
 		
 		// Find the most recently changed file in each directory and store when it was last modified
 		logger.info("Checking when each server was last modified.");
@@ -98,27 +103,43 @@ public class Main {
 		}
 		
 		// Get a list of the folders in the backup directory
-		File[] backupList = new File(pathToBackups).listFiles(File::isDirectory);
+		File[] backupList = backupsFolder.listFiles(File::isDirectory);
 		// Get the most recent time stamp in each backup directory
 		HashMap<File, Date> backupMap = new HashMap<>();
-		for (File backupDir : backupList) {
-			lastModified = roundDateToSeconds(getBackupTimeStamp(getLatestBackup(backupDir)));
-			// TODO: Format logged date
-			logger.info("Found backup for server: \"" + backupDir.getName() + "\" last modified: " + lastModified);
-			backupMap.put(backupDir, lastModified);
-		}
-		
-		// Check which servers have been modified since the last backup
-		logger.info("Checking which servers need to be backed up.");
+		// If the backupList is empty, back up all servers
 		ArrayList<File> serversToBackup = new ArrayList<>();
-		for (Map.Entry<File, Date> entry : serverMap.entrySet()) {
-			File serverFile = entry.getKey();
-		    Date serverLastModified = entry.getValue();
-		    
-			if (serverLastModified.compareTo(backupMap.get(generateBackupFileFromString(serverFile.getName()))) > 0) {
-				logger.info("Server \"" + serverFile.getName() + "\" needs to be backed up.");
-				serversToBackup.add(serverFile);
-		    }
+		if (backupList.length != 0) {
+			for (File backupDir : backupList) {
+				// If the backup directory for a server is empty, make a backup for that server
+				if (backupDir.list().length == 0) {
+					logger.info("Backup directory for server \"" + backupDir.getName() + "\" is empty. Backup will be made.");
+					backupMap.put(backupDir, new Date(0L));
+				} else {
+					lastModified = roundDateToSeconds(getBackupTimeStamp(getLatestBackup(backupDir)));
+					// TODO: Format logged date
+					logger.info("Found most recent backup for server: \"" + backupDir.getName() + "\" last modified: " + lastModified);
+					backupMap.put(backupDir, lastModified);
+				}
+			}
+			
+			// Check which servers have been modified since the last backup
+			logger.info("Checking which servers need to be backed up.");
+			Date backupLastModified;
+			for (Map.Entry<File, Date> entry : serverMap.entrySet()) {
+				File serverFile = entry.getKey();
+			    Date serverLastModified = entry.getValue();
+
+			    backupLastModified = backupMap.get(generateBackupFileFromString(serverFile.getName()));
+				if (backupLastModified.getTime() == 0L || serverLastModified.compareTo(backupLastModified) > 0) {
+					logger.info("Server \"" + serverFile.getName() + "\" needs to be backed up.");
+					serversToBackup.add(serverFile);
+			    }
+			}
+		} else {
+			logger.info("No backups were found. Backing up all servers.");
+			for (File server : serverList) {
+				serversToBackup.add(server);
+			}
 		}
 		
 		// Iterate through the servers that need to be backed up
@@ -129,7 +150,12 @@ public class Main {
 			for (File serverFolder : serversToBackup) {
 				logger.info("Backing up server: " + serverFolder.getName());
 				backupFolder = generateBackupFileFromString(serverFolder.getName());
-				backupServer(serverFolder, backupFolder);
+				try {
+					backupServer(serverFolder, backupFolder);
+				} catch (ZipException e) {
+					// FIXME: Figure out why this catch doesn't trigger the logger and just eats the exception
+					logger.log(Level.WARNING, "Server folder \"" + serverFolder.getName() + "\" contains no files, skipping backup.", e);
+				}
 			}
 		}
 		

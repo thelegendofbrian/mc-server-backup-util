@@ -36,6 +36,8 @@ public class Main {
 		
 		Properties defaultProps = new Properties();
 		defaultProps.setProperty("logLevel", "INFO");
+		defaultProps.setProperty("enablePruning", "false");
+		defaultProps.setProperty("pruningThreshold", "60");
 		
 		Properties properties = new Properties(defaultProps);
 		properties.setProperty("serversDirectory", "");
@@ -48,8 +50,8 @@ public class Main {
 		// Verify validity of config values
 		if ("".equals(properties.getProperty("serversDirectory")) || "".equals(properties.getProperty("backupsDirectory"))) {
 			// TODO: Add GUI and explanation of how to set up for no GUI
-			
 			logger.severe("Invalid directory configuration set.");
+			logger.severe("Edit config.ini and specify the serversDirectory and backupsDirectory.");
 			System.exit(-1);
 		}
 		
@@ -58,7 +60,6 @@ public class Main {
 		pathToBackups = properties.getProperty("backupsDirectory");
 		logger.info("Backups directory found in config: " + new File(pathToBackups).getAbsolutePath());
 		 LoggerManager.getInstance().setGlobalLoggingLevel(Level.parse(properties.getProperty("logLevel")));
-		// TODO
 		
 		// Check if servers directory exists
 		logger.info("Checking for valid server file structure.");
@@ -66,7 +67,21 @@ public class Main {
 		
 		// Make backups directory if it doesn't exist
 		logger.info("Checking for backups directory.");
-		// TODO
+		File backupsFolder = new File(pathToBackups);
+
+		try {
+			if (backupsFolder.createNewFile()) {
+				logger.info("Backups folder \"" + backupsFolder.getName() + "\" created successfully.");
+			}
+		} catch (IOException e) {
+			logger.log(Level.SEVERE, "Unable to create backups folder: ", e);
+			System.exit(-1);
+		}
+		
+		if (!backupsFolder.canWrite()) {
+			logger.severe("The specified backups directory cannot be written to.");
+			System.exit(-1);
+		}
 		
 		// Get a list of the folders in the servers directory
 		File[] serverList = new File(pathToServers).listFiles(File::isDirectory);

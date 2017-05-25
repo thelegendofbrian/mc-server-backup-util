@@ -15,9 +15,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.zeroturnaround.zip.ZipException;
 import org.zeroturnaround.zip.ZipUtil;
 import io.github.talkarcabbage.logger.LoggerManager;
@@ -31,8 +31,6 @@ public class Main {
 	private static HashMap<File, Date> serverMap;
 	
 	public static void main(String[] args) {
-		// TODO: Use GMT instead of local time
-		
 		// Get config settings or make one if one doesn't exist
 		logger.info("Reading configuration file.");
 		
@@ -95,10 +93,12 @@ public class Main {
 		logger.info("Checking when each server was last modified.");
 		serverMap = new HashMap<>();
 		Date lastModified;
+		SimpleDateFormat sdfPretty = new SimpleDateFormat("MMM dd yyyy - hh:mm:ss z");
+		sdfPretty.setTimeZone(TimeZone.getTimeZone("GMT"));
 		for (File serverDir : serverList) {
 			lastModified = roundDateToSeconds(lastModifiedInFolder(serverDir));
 			// TODO: Format logged date
-			logger.info("Found server named: \"" + serverDir.getName() + "\" last modified: " + lastModified);
+			logger.info("Found server named: \"" + serverDir.getName() + "\" last modified: " + sdfPretty.format(lastModified));
 			serverMap.put(serverDir, lastModified);
 		}
 		
@@ -117,7 +117,7 @@ public class Main {
 				} else {
 					lastModified = roundDateToSeconds(getBackupTimeStamp(getLatestBackup(backupDir)));
 					// TODO: Format logged date
-					logger.info("Found most recent backup for server: \"" + backupDir.getName() + "\" last modified: " + lastModified);
+					logger.info("Found most recent backup for server: \"" + backupDir.getName() + "\" last modified: " + sdfPretty.format(lastModified));
 					backupMap.put(backupDir, lastModified);
 				}
 			}
@@ -153,8 +153,7 @@ public class Main {
 				try {
 					backupServer(serverFolder, backupFolder);
 				} catch (ZipException e) {
-					// FIXME: Figure out why this catch doesn't trigger the logger and just eats the exception
-					logger.log(Level.WARNING, "Server folder \"" + serverFolder.getName() + "\" contains no files, skipping backup.", e);
+					logger.log(Level.WARNING, "Server folder \"" + serverFolder.getName() + "\" contains no files: ", e);
 				}
 			}
 		}
@@ -272,6 +271,7 @@ public class Main {
 	
 	public static void backupServer(File serverFolder, File backupFolder) {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 		String zipFile = backupFolder.getAbsolutePath() + File.separator + serverFolder.getName() + "_" + sdf.format(serverMap.get(serverFolder)) + ".zip";
 		
 		ZipUtil.pack(serverFolder, new File(zipFile));

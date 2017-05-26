@@ -1,0 +1,14 @@
+language: java
+jdk: oraclejdk8
+script: ant dist
+deploy:
+  provider: releases
+  api_key:
+    secure: AAAAB3NzaC1yc2EAAAADAQABAAACAQDnCQTRLhK/v3m2DiomyXtHYXCK2UaV3OPay9q2qnWrj0iCDoZdOyHLsFNLBDQqqP4Uwq8tA781yGdq+fpAf6UYG5ymO2C5o5x2Fgkws7FW3yszLx/iieEl8a8fgky2/hIo7+W9IeRrRcFDnhX45w3I3hRhTmmCCkq3xijjlzwhM/+tZ135DYk9frc4/kepR6jhpihsn+/aIfsn6QW1Od24wMR2EktIMqo0wc6komqhVLLzSdE+BkleQoshcGQCtJXVmBi715HvnH0niyRFbkPhL35TPLOF8WUBEMIr5kKqF33NcnGybrZH5bNYxw5D8UHI0hxYSmO7F6PNM5Hd/hpPd2acjDYFwdEAsPZ6nRT9B3+uBA5LNPvjtGDlLLu76YmH0Yv+9giEpq3S9cKHJxj/QftVm6zl8DYcxUAeuhoirtvyJdEcCR4Z4j+AkaekfhlrYV0t/sfLktBIHxpT8Mx0tI0I4GCsXFvdBXePY7hy38+eeKF9Vb5dT/CKIjPQ4v0j4wsehHQs1eb/FmbQzZv9RhBfyo2jWMvNhV6bgKaTDqD47LuBn5PNqjHHTr3HNZwgwJkvFAmtF/OMFungzovs58daJqQ1q8JhJ6tqw+27mhQ6iEVReg6kedxXd5mt9yvQGHlJtJoai/e3hZrCTpitWImxgBgt37SjaNEHLSmWGQ==
+  file_glob: true
+  file: dist/*
+  skip_cleanup: true
+  draft: true
+  on:
+    tags: true
+    all_branches: true

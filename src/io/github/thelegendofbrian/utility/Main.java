@@ -97,7 +97,6 @@ public class Main {
 		sdfPretty.setTimeZone(TimeZone.getTimeZone("GMT"));
 		for (File serverDir : serverList) {
 			lastModified = roundDateToSeconds(lastModifiedInFolder(serverDir));
-			// TODO: Format logged date
 			logger.info("Found server named: \"" + serverDir.getName() + "\" last modified: " + sdfPretty.format(lastModified));
 			serverMap.put(serverDir, lastModified);
 		}
@@ -116,7 +115,6 @@ public class Main {
 					backupMap.put(backupDir, new Date(0L));
 				} else {
 					lastModified = roundDateToSeconds(getBackupTimeStamp(getLatestBackup(backupDir)));
-					// TODO: Format logged date
 					logger.info("Found most recent backup for server: \"" + backupDir.getName() + "\" last modified: " + sdfPretty.format(lastModified));
 					backupMap.put(backupDir, lastModified);
 				}

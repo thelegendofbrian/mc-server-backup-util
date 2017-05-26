@@ -1,5 +1,5 @@
 # Minecraft Server Backup Utility
-A simple utility to back up multiple Minecraft servers to a specified location.
+A simple, cross-platform utility to back up multiple Minecraft servers to a specified location.
 
 ### Features
 
@@ -26,11 +26,11 @@ MinecraftServers
 ├───Vanilla-1.11.2
 │   ├───Vanilla-1.11.2_2017-05-21_23-00-00.zip
 │   ├───Vanilla-1.11.2_2017-05-20_23-00-00.zip
-│   ├───Vanilla-1.11.2_2017-05-20_24-00-00.zip
+│   └───Vanilla-1.11.2_2017-05-20_24-00-00.zip
 ├───Vanilla-1.9.4
 │   ├───Vanilla-1.9.4_2017-05-21_23-00-00.zip
 │   ├───Vanilla-1.9.4_2017-05-20_23-00-00.zip
-│   ├───Vanilla-1.9.4_2017-05-20_24-00-00.zip
+│   └───Vanilla-1.9.4_2017-05-20_24-00-00.zip
 ...
 ```
 

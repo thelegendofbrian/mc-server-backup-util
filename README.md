@@ -60,7 +60,7 @@ MinecraftServers
 5. Choose "Daily" (it can be made more frequent after creating the task), then press "Next"
 6. Choose the time you want to back up, then press "Next"
 7. Select "Start a program", then press "Next"
-8. In "Program/script", enter the path to `java.exe`. Instructions on finding this path can be found in (Appendix I)[#appendix-i]
+8. In "Program/script", enter the path to `java.exe`. Instructions on finding this path can be found in [How to locate your Java executable](#how-to-locate-your-java-executable)
 9. In "Add arguments", enter `-jar "/path/to/mc-server-backup-util-X.X.X.jar"`
 10. In "Start in", enter the path to the directory containing `mc-server-backup-util-X.X.X.jar`, *without* quotes, then press "Next"
 11. Press "Finish"

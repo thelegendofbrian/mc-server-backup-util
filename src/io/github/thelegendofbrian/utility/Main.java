@@ -31,11 +31,13 @@ public class Main {
 	private static HashMap<File, Date> serverMap;
 	
 	public static void main(String[] args) {
+		LoggerManager.getInstance().getFormatter().setLoggerNameLevel(Level.FINE);
+		
 		// Get config settings or make one if one doesn't exist
 		logger.info("Reading configuration file.");
 		
 		Properties defaultProps = new Properties();
-		defaultProps.setProperty("logLevel", "INFO");
+		defaultProps.setProperty("logLevel", "CONFIG");
 		defaultProps.setProperty("enablePruning", "false");
 		defaultProps.setProperty("pruningThreshold", "60");
 		
@@ -52,33 +54,42 @@ public class Main {
 			// TODO: Add GUI and explanation of how to set up for no GUI
 			logger.severe("Invalid directory configuration set.");
 			logger.severe("Edit config.ini and specify the serversDirectory and backupsDirectory.");
-			System.exit(-1);
+			crashProgram();
 		}
 		
+		LoggerManager.getInstance().setGlobalLoggingLevel(Level.parse(properties.getProperty("logLevel")));
+		logger.config("Logging level found in config: " + properties.getProperty("logLevel"));
 		pathToServers = properties.getProperty("serversDirectory");
-		logger.info("Servers directory found in config: " + new File(pathToServers).getAbsolutePath());
+		logger.config("Servers directory found in config: " + new File(pathToServers).getAbsolutePath());
 		pathToBackups = properties.getProperty("backupsDirectory");
-		logger.info("Backups directory found in config: " + new File(pathToBackups).getAbsolutePath());
-		 LoggerManager.getInstance().setGlobalLoggingLevel(Level.parse(properties.getProperty("logLevel")));
+		logger.config("Backups directory found in config: " + new File(pathToBackups).getAbsolutePath());
 		
 		// Check if servers directory exists
+		File serversDirectory = new File(pathToServers);
 		logger.info("Checking for valid server file structure.");
-		// TODO
+		if (!serversDirectory.exists()) {
+			logger.severe("The specified servers directory does not exist.");
+			crashProgram();
+		}
 		
 		// Get a list of the folders in the servers directory
-		File[] serverList = new File(pathToServers).listFiles(File::isDirectory);
+		File[] serverList = serversDirectory.listFiles(File::isDirectory);
+		if (serverList.length == 0) {
+			logger.severe("The servers directory does not contain any server folders.");
+			crashProgram();
+		}
 		
 		// Make backups directory if it doesn't exist
 		logger.info("Checking for backups directory.");
 		File backupsFolder = new File(pathToBackups);
-
+		
 		if (backupsFolder.mkdir()) {
 			logger.info("Backups folder \"" + backupsFolder.getName() + "\" created successfully.");
 		}
 		
 		if (!backupsFolder.canWrite()) {
 			logger.severe("The specified backups directory cannot be written to.");
-			System.exit(-1);
+			crashProgram();
 		}
 		
 		File serverBackupFolder;
@@ -125,13 +136,13 @@ public class Main {
 			Date backupLastModified;
 			for (Map.Entry<File, Date> entry : serverMap.entrySet()) {
 				File serverFile = entry.getKey();
-			    Date serverLastModified = entry.getValue();
-
-			    backupLastModified = backupMap.get(generateBackupFileFromString(serverFile.getName()));
+				Date serverLastModified = entry.getValue();
+				
+				backupLastModified = backupMap.get(generateBackupFileFromString(serverFile.getName()));
 				if (backupLastModified.getTime() == 0L || serverLastModified.compareTo(backupLastModified) > 0) {
 					logger.info("Server \"" + serverFile.getName() + "\" needs to be backed up.");
 					serversToBackup.add(serverFile);
-			    }
+				}
 			}
 		} else {
 			logger.info("No backups were found. Backing up all servers.");
@@ -171,12 +182,14 @@ public class Main {
 			}
 		} catch (IOException e) {
 			logger.log(Level.SEVERE, "Unable to create configuration file: ", e);
+			crashProgram();
 		}
 		
 		try (InputStream in = new FileInputStream(configFile)) {
 			properties.load(in);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.log(Level.SEVERE, "Unable to load configuration file: ", e);
+			crashProgram();
 		}
 	}
 	
@@ -186,11 +199,18 @@ public class Main {
 	public static void saveConfig(File configFile, Properties properties) {
 		try (OutputStream out = new FileOutputStream(configFile)) {
 			properties.store(out, null);
-		} catch (IOException e){
+		} catch (IOException e) {
 			logger.log(Level.SEVERE, "Unable to save to configuration file: ", e);
+			crashProgram();
 		}
 	}
 	
+	/**
+	 * Rounds the Date object to the nearest second.
+	 * 
+	 * @param date
+	 * @return
+	 */
 	public static Date roundDateToSeconds(Date date) {
 		long roundedDate = (date.getTime() / 1000) * 1000;
 		return new Date(roundedDate);
@@ -198,19 +218,18 @@ public class Main {
 	
 	/**
 	 * Generate the corresponding backup File location given the name of the server folder.
+	 * 
 	 * @param fileName
 	 * @return
 	 */
 	public static File generateBackupFileFromString(String fileName) {
-		File file = new File(pathToBackups, fileName);
-		return file;
+		return new File(pathToBackups, fileName);
 	}
 	
 	/**
 	 * Recursively finds the Date of the most recently changed file in a directory.
 	 * 
-	 * @return mostRecentDate
-	 * @throws IOException
+	 * @return
 	 */
 	public static Date lastModifiedInFolder(File file) {
 		Wrapper mostRecentTime = new Wrapper();
@@ -224,13 +243,11 @@ public class Main {
 					});
 		} catch (IOException e) {
 			logger.log(Level.SEVERE, "Exception caught while scanning a server directory for most recently modified file: ", e);
+			crashProgram();
 		}
 		
-		Date mostRecentDate = new Date(mostRecentTime.getValue());
-		
-		return mostRecentDate;
+		return new Date(mostRecentTime.getValue());
 	}
-	
 	
 	/**
 	 * Gets the time stamp of the backup archive with the most recent time stamp in its filename.
@@ -242,10 +259,16 @@ public class Main {
 		// Check which filename contains the most recent time stamp
 		Arrays.sort(backupList);
 		File mostRecentBackup = backupList[backupList.length - 1];
-
+		
 		return mostRecentBackup;
 	}
 	
+	/**
+	 * Returns a Date corresponding to the time stamp in a backup archive's file name.
+	 * 
+	 * @param backupFile
+	 * @return
+	 */
 	public static Date getBackupTimeStamp(File backupFile) {
 		String nameOfFile = backupFile.getName();
 		
@@ -262,17 +285,32 @@ public class Main {
 			date = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").parse(nameOfFile);
 		} catch (ParseException e) {
 			logger.log(Level.SEVERE, "Unable to parse date format of backup archive: ", e);
+			crashProgram();
 		}
 		
 		return date;
 	}
 	
+	/**
+	 * Zips the contents of the serverFolder directory into the backupFolder directory. Appends a time stamp to the end of the zip file name indicating when the server was last modified. 
+	 * 
+	 * @param serverFolder
+	 * @param backupFolder
+	 */
 	public static void backupServer(File serverFolder, File backupFolder) {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 		String zipFile = backupFolder.getAbsolutePath() + File.separator + serverFolder.getName() + "_" + sdf.format(serverMap.get(serverFolder)) + ".zip";
 		
 		ZipUtil.pack(serverFolder, new File(zipFile));
+	}
+	
+	/**
+	 * Returns a severe log message and exits the program.
+	 */
+	public static void crashProgram() {
+		logger.severe("The program has encountered a problem and must stop.");
+		System.exit(-1);
 	}
 	
 }

@@ -4,6 +4,7 @@
 /.sonar
 /.settings
 /sonar-project.properties
+/.scannerwork
 /servers
 /backups
 config.ini

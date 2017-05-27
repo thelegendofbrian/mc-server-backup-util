@@ -26,11 +26,11 @@ MinecraftServers
 ├───Vanilla-1.11.2
 │   ├───Vanilla-1.11.2_2017-05-21_23-00-00.zip
 │   ├───Vanilla-1.11.2_2017-05-20_23-00-00.zip
-│   └───Vanilla-1.11.2_2017-05-20_24-00-00.zip
+│   └───Vanilla-1.11.2_2017-05-19_23-00-00.zip
 ├───Vanilla-1.9.4
 │   ├───Vanilla-1.9.4_2017-05-21_23-00-00.zip
 │   ├───Vanilla-1.9.4_2017-05-20_23-00-00.zip
-│   └───Vanilla-1.9.4_2017-05-20_24-00-00.zip
+│   └───Vanilla-1.9.4_2017-05-19_23-00-00.zip
 ...
 ```
 
@@ -73,8 +73,9 @@ MinecraftServers
 
 | Option name      | Default   | Description                                                      | Examples |
 |:-----------------|:---------:|------------------------------------------------------------------|----------|
-| serversDirectory | -         | The location of the folder containing the server folders.        | `../servers`, `C://servers`, `/home/user/servers` |
-| backupsDirectory | -         | The location of the folder containing the backup folders. This directory will be created if it does not exist. |  `../backups`, `J://backups`, `/home/user/backups` |
+| serversDirectory | -         | The location of the folder containing the server folders.        | `../servers`, `C://mc/servers`, `/home/user/servers` |
+| backupsDirectory | -         | The location of the folder containing the backup folders. This directory will be created if it does not exist. |  `../backups`, `J://mc/backups`, `/home/user/backups` |
+| logLevel         | CONFIG    | The minimum level of log messages to show in the console. From highest to lowest: `ALL`, `SEVERE`, `WARNING`, `INFO`, `CONFIG`, `FINE`, `FINER`, `FINEST`, `OFF` | `NONE`, `INFO`, `SEVERE` |
 
 ### Appendix I
 

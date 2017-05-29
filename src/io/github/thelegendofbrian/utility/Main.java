@@ -24,13 +24,14 @@ import io.github.talkarcabbage.logger.LoggerManager;
 
 public class Main {
 	
-	public static String pathToServers;
-	public static String pathToBackups;
-	
 	private static final Logger logger = LoggerManager.getInstance().getLogger("main");
 	private static HashMap<File, Date> serverMap;
+	private static Date lastModified; // NOSONAR
 	
 	public static void main(String[] args) {
+		String pathToServers;
+		String pathToBackups;
+		
 		LoggerManager.getInstance().getFormatter().setLoggerNameLevel(Level.FINE);
 		
 		// Get config settings or make one if one doesn't exist
@@ -103,12 +104,11 @@ public class Main {
 		// Find the most recently changed file in each directory and store when it was last modified
 		logger.info("Checking when each server was last modified.");
 		serverMap = new HashMap<>();
-		Date lastModified;
 		SimpleDateFormat sdfPretty = new SimpleDateFormat("MMM dd yyyy - hh:mm:ss z");
 		sdfPretty.setTimeZone(TimeZone.getTimeZone("GMT"));
 		for (File serverDir : serverList) {
 			lastModified = roundDateToSeconds(lastModifiedInFolder(serverDir));
-			logger.info("Found server named: \"" + serverDir.getName() + "\" last modified: " + sdfPretty.format(lastModified));
+			logger.info( () -> "Found server named: \"" + serverDir.getName() + "\" last modified: " + sdfPretty.format(lastModified));
 			serverMap.put(serverDir, lastModified);
 		}
 		
@@ -126,7 +126,7 @@ public class Main {
 					backupMap.put(backupDir, new Date(0L));
 				} else {
 					lastModified = roundDateToSeconds(getBackupTimeStamp(getLatestBackup(backupDir)));
-					logger.info("Found most recent backup for server: \"" + backupDir.getName() + "\" last modified: " + sdfPretty.format(lastModified));
+					logger.info(() -> "Found most recent backup for server: \"" + backupDir.getName() + "\" last modified: " + sdfPretty.format(lastModified));
 					backupMap.put(backupDir, lastModified);
 				}
 			}
@@ -138,7 +138,7 @@ public class Main {
 				File serverFile = entry.getKey();
 				Date serverLastModified = entry.getValue();
 				
-				backupLastModified = backupMap.get(generateBackupFileFromString(serverFile.getName()));
+				backupLastModified = backupMap.get(generateBackupFileFromString(serverFile.getName(), pathToBackups));
 				if (backupLastModified.getTime() == 0L || serverLastModified.compareTo(backupLastModified) > 0) {
 					logger.info("Server \"" + serverFile.getName() + "\" needs to be backed up.");
 					serversToBackup.add(serverFile);
@@ -158,7 +158,7 @@ public class Main {
 		} else {
 			for (File serverFolder : serversToBackup) {
 				logger.info("Backing up server: " + serverFolder.getName());
-				backupFolder = generateBackupFileFromString(serverFolder.getName());
+				backupFolder = generateBackupFileFromString(serverFolder.getName(), pathToBackups);
 				try {
 					backupServer(serverFolder, backupFolder);
 				} catch (ZipException e) {
@@ -222,7 +222,7 @@ public class Main {
 	 * @param fileName
 	 * @return
 	 */
-	public static File generateBackupFileFromString(String fileName) {
+	public static File generateBackupFileFromString(String fileName, String pathToBackups) {
 		return new File(pathToBackups, fileName);
 	}
 	
@@ -258,9 +258,8 @@ public class Main {
 		
 		// Check which filename contains the most recent time stamp
 		Arrays.sort(backupList);
-		File mostRecentBackup = backupList[backupList.length - 1];
 		
-		return mostRecentBackup;
+		return backupList[backupList.length - 1];
 	}
 	
 	/**
@@ -273,7 +272,7 @@ public class Main {
 		String nameOfFile = backupFile.getName();
 		
 		// Remove file extension
-		if (nameOfFile.indexOf('.') > 0) {
+		if (nameOfFile.indexOf('.') > 0) { // NOSONAR: This is needed to handle files starting with '.'
 			nameOfFile = nameOfFile.substring(0, nameOfFile.lastIndexOf('.'));
 		}
 		

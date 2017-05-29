@@ -1,16 +1,10 @@
 package io.github.thelegendofbrian.utility;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import java.util.Date;
-import org.junit.Before;
 import org.junit.Test;
 
 public class MainTest {
-	
-	@Before
-	public void setUp() throws Exception {
-		
-	}
 	
 	@Test
 	public void testRoundDateToSeconds1() {

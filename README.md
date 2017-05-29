@@ -73,8 +73,8 @@ MinecraftServers
 
 | Option name      | Default   | Description                                                      | Examples |
 |:-----------------|:---------:|------------------------------------------------------------------|----------|
-| serversDirectory | -         | The location of the folder containing the server folders.        | `../servers`, `C://mc/servers`, `/home/user/servers` |
-| backupsDirectory | -         | The location of the folder containing the backup folders. This directory will be created if it does not exist. |  `../backups`, `J://mc/backups`, `/home/user/backups` |
+| serversDirectory | -         | The location of the folder containing the server folders.        | `../servers`, `C://mc/servers`, `/home/user/servers`, `\\\\computer/shared` |
+| backupsDirectory | -         | The location of the folder containing the backup folders. This directory will be created if it does not exist. |  `../backups`, `J://mc/backups`, `/home/user/backups`, `\\\\computer/shared` |
 | logLevel         | CONFIG    | The minimum level of log messages to show in the console. From highest to lowest: `ALL`, `SEVERE`, `WARNING`, `INFO`, `CONFIG`, `FINE`, `FINER`, `FINEST`, `OFF` | `NONE`, `INFO`, `SEVERE` |
 
 ### Appendix I

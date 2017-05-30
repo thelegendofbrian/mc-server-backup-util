@@ -37,18 +37,27 @@ public class Main {
 	
 	private Date lastModified;
 	
+	private HashMap<File, Date> serverMap = new HashMap<>();
 	private HashMap<File, Date> backupMap = new HashMap<>();
 	private ArrayList<File> serversToBackup = new ArrayList<>();
 	
-	private File backupFolder;
+	// Defined as non-static to promote thread safety
+	private final SimpleDateFormat sdfPretty = new SimpleDateFormat("MMM dd yyyy - hh:mm:ss z");
 	
-	private static final SimpleDateFormat sdfPretty = new SimpleDateFormat("MMM dd yyyy - hh:mm:ss z");
-	static {
-		sdfPretty.setTimeZone(TimeZone.getTimeZone("GMT"));
-	}
+	// Define config property literals
+	private static final String SERVERS_DIRECTORY = "serversDirectory";
+	private static final String BACKUPS_DIRECTORY = "backupsDirectory";
+	private static final String LOG_LEVEL = "logLevel";
+	private static final String ENABLE_PRUNING = "enablePruning";
+	private static final String PRUNING_THRESHOLD = "pruningThreshold";
+	
+	private static final String CONFIG_NAME = "config.ini";
 	
 	private static final Logger logger = LoggerManager.getInstance().getLogger("main");
-	private static HashMap<File, Date> serverMap = new HashMap<>();
+	
+	public Main() {
+		sdfPretty.setTimeZone(TimeZone.getTimeZone("GMT"));
+	}
 	
 	public static void main(String[] args) {
 		LoggerManager.getInstance().getFormatter().setLoggerNameLevel(Level.FINE);
@@ -76,36 +85,36 @@ public class Main {
 		logger.fine("Reading configuration file.");
 		
 		Properties defaultProps = new Properties();
-		defaultProps.setProperty("logLevel", "CONFIG");
-		defaultProps.setProperty("enablePruning", "false");
-		defaultProps.setProperty("pruningThreshold", "60");
+		defaultProps.setProperty(LOG_LEVEL, "CONFIG");
+		defaultProps.setProperty(ENABLE_PRUNING, "false");
+		defaultProps.setProperty(PRUNING_THRESHOLD, "60");
 		
 		properties = new Properties(defaultProps);
-		properties.setProperty("serversDirectory", "");
-		properties.setProperty("backupsDirectory", "");
+		properties.setProperty(SERVERS_DIRECTORY, "");
+		properties.setProperty(BACKUPS_DIRECTORY, "");
 		
-		configFile = new File("config.ini");
+		configFile = new File(CONFIG_NAME);
 		
-		// Loads the config file into properties
+		// Load the config file into properties
 		loadConfig();
 		
 		// Verify validity of config values
-		if ("".equals(properties.getProperty("serversDirectory")) || "".equals(properties.getProperty("backupsDirectory"))) {
+		if ("".equals(properties.getProperty(SERVERS_DIRECTORY)) || "".equals(properties.getProperty(BACKUPS_DIRECTORY))) {
 			// TODO: Add GUI and explanation of how to set up for no GUI
 			logger.severe("Invalid directory configuration set.");
-			logger.severe("Edit config.ini and specify the serversDirectory and backupsDirectory.");
+			logger.severe( () -> "Edit config.ini and specify the " + SERVERS_DIRECTORY + " and " + BACKUPS_DIRECTORY + ".");
 			crashProgram();
 		}
 		
 		// Apply the settings from config
-		LoggerManager.getInstance().setGlobalLoggingLevel(Level.parse(properties.getProperty("logLevel")));
-		logger.fine("Logging level found in config: " + properties.getProperty("logLevel"));
+		LoggerManager.getInstance().setGlobalLoggingLevel(Level.parse(properties.getProperty(LOG_LEVEL)));
+		logger.fine("Logging level found in config: " + properties.getProperty(LOG_LEVEL));
 		
-		pathToServers = properties.getProperty("serversDirectory");
+		pathToServers = properties.getProperty(SERVERS_DIRECTORY);
 		serversDirectory = new File(pathToServers);
 		logger.fine("Servers directory found in config: " + serversDirectory.getAbsolutePath());
 		
-		pathToBackups = properties.getProperty("backupsDirectory");
+		pathToBackups = properties.getProperty(BACKUPS_DIRECTORY);
 		backupsDirectory = new File(pathToBackups);
 		logger.fine("Backups directory found in config: " + backupsDirectory.getAbsolutePath());
 	}
@@ -258,6 +267,8 @@ public class Main {
 		} else {
 			for (File serverFolder : serversToBackup) {
 				logger.info("Backing up server: " + serverFolder.getName());
+				
+				File backupFolder;
 				backupFolder = generateBackupFileFromString(serverFolder.getName(), pathToBackups);
 				try {
 					backupSpecificServer(serverFolder, backupFolder);
@@ -360,7 +371,7 @@ public class Main {
 	 * @param serverFolder
 	 * @param backupFolder
 	 */
-	public static void backupSpecificServer(File serverFolder, File backupFolder) {
+	public void backupSpecificServer(File serverFolder, File backupFolder) {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 		String zipFile = backupFolder.getAbsolutePath() + File.separator + serverFolder.getName() + "_" + sdf.format(serverMap.get(serverFolder)) + ".zip";

@@ -24,31 +24,70 @@ import io.github.talkarcabbage.logger.LoggerManager;
 
 public class Main {
 	
+	private File configFile;
+	private Properties properties;
+	
+	private String pathToServers;
+	private String pathToBackups;
+	private File serversDirectory;
+	private File backupsDirectory;
+	
+	private File[] serverList;
+	private File[] backupList;
+	
+	private Date lastModified;
+	
+	private HashMap<File, Date> backupMap = new HashMap<>();
+	private ArrayList<File> serversToBackup = new ArrayList<>();
+	
+	private File backupFolder;
+	
+	private static final SimpleDateFormat sdfPretty = new SimpleDateFormat("MMM dd yyyy - hh:mm:ss z");
+	static {
+		sdfPretty.setTimeZone(TimeZone.getTimeZone("GMT"));
+	}
+	
 	private static final Logger logger = LoggerManager.getInstance().getLogger("main");
-	private static HashMap<File, Date> serverMap;
-	private static Date lastModified; // NOSONAR
+	private static HashMap<File, Date> serverMap = new HashMap<>();
 	
 	public static void main(String[] args) {
-		String pathToServers;
-		String pathToBackups;
-		
 		LoggerManager.getInstance().getFormatter().setLoggerNameLevel(Level.FINE);
 		
-		// Get config settings or make one if one doesn't exist
-		logger.info("Reading configuration file.");
+		Main instance = new Main();
+		instance.runBackupUtility();
+	}
+	
+	public void runBackupUtility() {
+		configSetup();
+		storeServersDirectories();
+		checkDirectories();
+		createBackupDirectories();
+		storeEachServerLastModified();
+		storeBackupsDirectories();
+		determineServersToBackup();
+		backupServers();
+		logger.info("Backup process complete.");
+	}
+	
+	/**
+	 * Sets default config values and loads the config file.
+	 */
+	public void configSetup() {
+		logger.fine("Reading configuration file.");
 		
 		Properties defaultProps = new Properties();
 		defaultProps.setProperty("logLevel", "CONFIG");
 		defaultProps.setProperty("enablePruning", "false");
 		defaultProps.setProperty("pruningThreshold", "60");
 		
-		Properties properties = new Properties(defaultProps);
+		properties = new Properties(defaultProps);
 		properties.setProperty("serversDirectory", "");
 		properties.setProperty("backupsDirectory", "");
 		
-		File configFile = new File("config.ini");
-		loadConfig(configFile, properties);
-		saveConfig(configFile, properties);
+		configFile = new File("config.ini");
+		
+		// Loads the config file into properties
+		loadConfig();
 		
 		// Verify validity of config values
 		if ("".equals(properties.getProperty("serversDirectory")) || "".equals(properties.getProperty("backupsDirectory"))) {
@@ -58,127 +97,28 @@ public class Main {
 			crashProgram();
 		}
 		
+		// Apply the settings from config
 		LoggerManager.getInstance().setGlobalLoggingLevel(Level.parse(properties.getProperty("logLevel")));
-		logger.config("Logging level found in config: " + properties.getProperty("logLevel"));
+		logger.fine("Logging level found in config: " + properties.getProperty("logLevel"));
+		
 		pathToServers = properties.getProperty("serversDirectory");
-		logger.config("Servers directory found in config: " + new File(pathToServers).getAbsolutePath());
+		serversDirectory = new File(pathToServers);
+		logger.fine("Servers directory found in config: " + serversDirectory.getAbsolutePath());
+		
 		pathToBackups = properties.getProperty("backupsDirectory");
-		logger.config("Backups directory found in config: " + new File(pathToBackups).getAbsolutePath());
-		
-		// Check if servers directory exists
-		File serversDirectory = new File(pathToServers);
-		logger.info("Checking for valid server file structure.");
-		if (!serversDirectory.exists()) {
-			logger.severe("The specified servers directory does not exist.");
-			crashProgram();
-		}
-		
-		// Get a list of the folders in the servers directory
-		File[] serverList = serversDirectory.listFiles(File::isDirectory);
-		if (serverList.length == 0) {
-			logger.severe("The servers directory does not contain any server folders.");
-			crashProgram();
-		}
-		
-		// Make backups directory if it doesn't exist
-		logger.info("Checking for backups directory.");
-		File backupsFolder = new File(pathToBackups);
-		
-		if (backupsFolder.mkdir()) {
-			logger.info("Backups folder \"" + backupsFolder.getName() + "\" created successfully.");
-		}
-		
-		if (!backupsFolder.canWrite()) {
-			logger.severe("The specified backups directory cannot be written to.");
-			crashProgram();
-		}
-		
-		File serverBackupFolder;
-		for (File server : serverList) {
-			serverBackupFolder = new File(backupsFolder.getAbsolutePath() + File.separator + server.getName());
-			if (serverBackupFolder.mkdir()) {
-				logger.info("Backup directory did not exist for \"" + server.getName() + "\". Creating directory.");
-			}
-		}
-		
-		// Find the most recently changed file in each directory and store when it was last modified
-		logger.info("Checking when each server was last modified.");
-		serverMap = new HashMap<>();
-		SimpleDateFormat sdfPretty = new SimpleDateFormat("MMM dd yyyy - hh:mm:ss z");
-		sdfPretty.setTimeZone(TimeZone.getTimeZone("GMT"));
-		for (File serverDir : serverList) {
-			lastModified = roundDateToSeconds(lastModifiedInFolder(serverDir));
-			logger.info( () -> "Found server named: \"" + serverDir.getName() + "\" last modified: " + sdfPretty.format(lastModified));
-			serverMap.put(serverDir, lastModified);
-		}
-		
-		// Get a list of the folders in the backup directory
-		File[] backupList = backupsFolder.listFiles(File::isDirectory);
-		// Get the most recent time stamp in each backup directory
-		HashMap<File, Date> backupMap = new HashMap<>();
-		// If the backupList is empty, back up all servers
-		ArrayList<File> serversToBackup = new ArrayList<>();
-		if (backupList.length != 0) {
-			for (File backupDir : backupList) {
-				// If the backup directory for a server is empty, make a backup for that server
-				if (backupDir.list().length == 0) {
-					logger.info("Backup directory for server \"" + backupDir.getName() + "\" is empty. Backup will be made.");
-					backupMap.put(backupDir, new Date(0L));
-				} else {
-					lastModified = roundDateToSeconds(getBackupTimeStamp(getLatestBackup(backupDir)));
-					logger.info(() -> "Found most recent backup for server: \"" + backupDir.getName() + "\" last modified: " + sdfPretty.format(lastModified));
-					backupMap.put(backupDir, lastModified);
-				}
-			}
-			
-			// Check which servers have been modified since the last backup
-			logger.info("Checking which servers need to be backed up.");
-			Date backupLastModified;
-			for (Map.Entry<File, Date> entry : serverMap.entrySet()) {
-				File serverFile = entry.getKey();
-				Date serverLastModified = entry.getValue();
-				
-				backupLastModified = backupMap.get(generateBackupFileFromString(serverFile.getName(), pathToBackups));
-				if (backupLastModified.getTime() == 0L || serverLastModified.compareTo(backupLastModified) > 0) {
-					logger.info("Server \"" + serverFile.getName() + "\" needs to be backed up.");
-					serversToBackup.add(serverFile);
-				}
-			}
-		} else {
-			logger.info("No backups were found. Backing up all servers.");
-			for (File server : serverList) {
-				serversToBackup.add(server);
-			}
-		}
-		
-		// Iterate through the servers that need to be backed up
-		File backupFolder;
-		if (serversToBackup.isEmpty()) {
-			logger.info("All backups were already up-to-date.");
-		} else {
-			for (File serverFolder : serversToBackup) {
-				logger.info("Backing up server: " + serverFolder.getName());
-				backupFolder = generateBackupFileFromString(serverFolder.getName(), pathToBackups);
-				try {
-					backupServer(serverFolder, backupFolder);
-				} catch (ZipException e) {
-					logger.log(Level.WARNING, "Server folder \"" + serverFolder.getName() + "\" contains no files: ", e);
-				}
-			}
-		}
-		
-		logger.info("Backup process complete.");
-		
+		backupsDirectory = new File(pathToBackups);
+		logger.fine("Backups directory found in config: " + backupsDirectory.getAbsolutePath());
 	}
 	
 	/**
-	 * Attempts to load the config file into properties. If the config file doesn't exist, it will be created.
+	 * Attempts to load the config file into {@link #properties}. If the config file doesn't exist, it will be created.
 	 */
-	public static void loadConfig(File configFile, Properties properties) {
+	public void loadConfig() {
 		// Try to create a config file if one doesn't exist
 		try {
 			if (configFile.createNewFile()) {
 				logger.info("Configuration file \"" + configFile.getName() + "\" created successfully.");
+				saveConfig();
 			}
 		} catch (IOException e) {
 			logger.log(Level.SEVERE, "Unable to create configuration file: ", e);
@@ -196,12 +136,135 @@ public class Main {
 	/**
 	 * Attempts to save the properties into the config file
 	 */
-	public static void saveConfig(File configFile, Properties properties) {
+	public void saveConfig() {
 		try (OutputStream out = new FileOutputStream(configFile)) {
 			properties.store(out, null);
 		} catch (IOException e) {
 			logger.log(Level.SEVERE, "Unable to save to configuration file: ", e);
 			crashProgram();
+		}
+	}
+	
+	/**
+	 * Stores the list of directories in the servers directory into {@link #serversList}.
+	 */
+	private void storeServersDirectories() {
+		serverList = serversDirectory.listFiles(File::isDirectory);
+	}
+	
+	/**
+	 * Stores the list of directories in the backups directory into {@link #backupsList}.
+	 */
+	private void storeBackupsDirectories() {
+		backupList = backupsDirectory.listFiles(File::isDirectory);
+	}
+	
+	private void checkDirectories() {
+		// Check if servers directory exists
+		logger.fine("Checking for valid server file structure.");
+		if (!serversDirectory.exists()) {
+			logger.severe("The specified servers directory " + serversDirectory.getAbsolutePath() + " does not exist.");
+			crashProgram();
+		}
+		
+		// Make backups directory if it doesn't exist
+		logger.fine("Checking for backups directory.");
+		
+		if (backupsDirectory.mkdir()) {
+			logger.info("Backups folder \"" + backupsDirectory.getName() + "\" created successfully.");
+		}
+		
+		if (!backupsDirectory.canWrite()) {
+			logger.severe("The specified backups directory cannot be written to.");
+			crashProgram();
+		}
+		
+		if (serverList.length == 0) {
+			logger.severe("The servers directory does not contain any server folders.");
+			crashProgram();
+		}
+	}
+	
+	/**
+	 * Creates the backup folder directory structure based on the servers in the servers directory.
+	 */
+	private void createBackupDirectories() {
+		File serverBackupFolder;
+		for (File server : serverList) {
+			serverBackupFolder = new File(backupsDirectory.getAbsolutePath() + File.separator + server.getName());
+			if (serverBackupFolder.mkdir()) {
+				logger.info("Backup directory did not exist for \"" + server.getName() + "\". Creating directory.");
+			}
+		}
+	}
+	
+	/**
+	 * Finds the most recently changed file in each server directory and stores when it was last modified.
+	 */
+	private void storeEachServerLastModified() {
+		logger.fine("Checking when each server was last modified.");
+		
+		for (File serverDir : serverList) {
+			lastModified = roundDateToSeconds(lastModifiedInFolder(serverDir));
+			logger.fine(() -> "Found server named: \"" + serverDir.getName() + "\" last modified: " + sdfPretty.format(lastModified));
+			serverMap.put(serverDir, lastModified);
+		}
+	}
+	
+	/**
+	 * Determines which servers need to be backed up. Gets the most recent time stamp in each backup directory. If {@link #backupList()} is empty, all servers will be marked to back up.
+	 */
+	public void determineServersToBackup() {
+		if (backupList.length != 0) {
+			for (File backupDir : backupList) {
+				// If the backup directory for a server is empty, make a backup for that server
+				if (backupDir.list().length == 0) {
+					logger.fine("Backup directory for server \"" + backupDir.getName() + "\" is empty. A backup will be made.");
+					backupMap.put(backupDir, new Date(0L));
+				} else {
+					lastModified = roundDateToSeconds(getBackupTimeStamp(getLatestBackup(backupDir)));
+					logger.fine(() -> "Found most recent backup for server: \"" + backupDir.getName() + "\" last modified: " + sdfPretty.format(lastModified));
+					backupMap.put(backupDir, lastModified);
+				}
+			}
+			
+			// Check which servers have been modified since the last backup
+			logger.fine("Checking which servers need to be backed up.");
+			Date backupLastModified;
+			for (Map.Entry<File, Date> entry : serverMap.entrySet()) {
+				File serverFile = entry.getKey();
+				Date serverLastModified = entry.getValue();
+				
+				backupLastModified = backupMap.get(generateBackupFileFromString(serverFile.getName(), pathToBackups));
+				if (backupLastModified.getTime() == 0L || serverLastModified.compareTo(backupLastModified) > 0) {
+					logger.fine("Server \"" + serverFile.getName() + "\" needs to be backed up.");
+					serversToBackup.add(serverFile);
+				}
+			}
+		} else {
+			logger.fine("No backups were found. All servers will be backed up.");
+			for (File server : serverList) {
+				serversToBackup.add(server);
+			}
+		}
+	}
+	
+	/**
+	 * Iterates through the servers that need to be backed up.
+	 */
+	private void backupServers() {
+		if (serversToBackup.isEmpty()) {
+			logger.info("All backups were already up-to-date.");
+		} else {
+			for (File serverFolder : serversToBackup) {
+				logger.info("Backing up server: " + serverFolder.getName());
+				backupFolder = generateBackupFileFromString(serverFolder.getName(), pathToBackups);
+				try {
+					backupSpecificServer(serverFolder, backupFolder);
+				} catch (ZipException e) {
+					logger.log(Level.WARNING, "Server folder \"" + serverFolder.getName() + "\" contains no files: ", e);
+				}
+			}
 		}
 	}
 	
@@ -291,12 +354,13 @@ public class Main {
 	}
 	
 	/**
-	 * Zips the contents of the serverFolder directory into the backupFolder directory. Appends a time stamp to the end of the zip file name indicating when the server was last modified. 
+	 * Zips the contents of the serverFolder directory into the backupFolder directory. Appends a time stamp to the end
+	 * of the zip file name indicating when the server was last modified.
 	 * 
 	 * @param serverFolder
 	 * @param backupFolder
 	 */
-	public static void backupServer(File serverFolder, File backupFolder) {
+	public static void backupSpecificServer(File serverFolder, File backupFolder) {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 		String zipFile = backupFolder.getAbsolutePath() + File.separator + serverFolder.getName() + "_" + sdf.format(serverMap.get(serverFolder)) + ".zip";

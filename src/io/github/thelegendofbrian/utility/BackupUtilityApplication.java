@@ -22,7 +22,7 @@ import org.zeroturnaround.zip.ZipException;
 import org.zeroturnaround.zip.ZipUtil;
 import io.github.talkarcabbage.logger.LoggerManager;
 
-public class Main {
+public class BackupUtilityApplication {
 	
 	private File configFile;
 	private Properties properties;
@@ -55,14 +55,14 @@ public class Main {
 	
 	private static final Logger logger = LoggerManager.getInstance().getLogger("main");
 	
-	public Main() {
+	public BackupUtilityApplication() {
 		sdfPretty.setTimeZone(TimeZone.getTimeZone("GMT"));
 	}
 	
 	public static void main(String[] args) {
 		LoggerManager.getInstance().getFormatter().setLoggerNameLevel(Level.FINE);
 		
-		Main instance = new Main();
+		BackupUtilityApplication instance = new BackupUtilityApplication();
 		instance.runBackupUtility();
 	}
 	
@@ -225,31 +225,11 @@ public class Main {
 	 */
 	public void determineServersToBackup() {
 		if (backupList.length != 0) {
-			for (File backupDir : backupList) {
-				// If the backup directory for a server is empty, make a backup for that server
-				if (backupDir.list().length == 0) {
-					logger.fine("Backup directory for server \"" + backupDir.getName() + "\" is empty. A backup will be made.");
-					backupMap.put(backupDir, new Date(0L));
-				} else {
-					lastModified = roundDateToSeconds(getBackupTimeStamp(getLatestBackup(backupDir)));
-					logger.fine(() -> "Found most recent backup for server: \"" + backupDir.getName() + "\" last modified: " + sdfPretty.format(lastModified));
-					backupMap.put(backupDir, lastModified);
-				}
-			}
+			// Figure out the time stamps for the most recent backup for each server
+			parseBackupTimeStamps();
 			
 			// Check which servers have been modified since the last backup
-			logger.fine("Checking which servers need to be backed up.");
-			Date backupLastModified;
-			for (Map.Entry<File, Date> entry : serverMap.entrySet()) {
-				File serverFile = entry.getKey();
-				Date serverLastModified = entry.getValue();
-				
-				backupLastModified = backupMap.get(generateBackupFileFromString(serverFile.getName(), pathToBackups));
-				if (backupLastModified.getTime() == 0L || serverLastModified.compareTo(backupLastModified) > 0) {
-					logger.fine("Server \"" + serverFile.getName() + "\" needs to be backed up.");
-					serversToBackup.add(serverFile);
-				}
-			}
+			compareServerAndBackupTimestamps();
 		} else {
 			logger.fine("No backups were found. All servers will be backed up.");
 			for (File server : serverList) {
@@ -257,7 +237,40 @@ public class Main {
 			}
 		}
 	}
+
+	/**
+	 * Stores the time stamps for the most recent backup for each server into {@link #backupMap}.
+	 * If the backup folder for a server is empty, the time stamp for the most recent backup is set to epoch time.
+	 */
+	private void parseBackupTimeStamps() {
+		for (File backupDir : backupList) {
+			// If the backup directory for a server is empty, make a backup for that server
+			if (backupDir.list().length == 0) {
+				logger.fine("Backup directory for server \"" + backupDir.getName() + "\" is empty. A backup will be made.");
+				backupMap.put(backupDir, new Date(0L));
+			} else {
+				lastModified = roundDateToSeconds(getBackupTimeStamp(getLatestBackup(backupDir)));
+				logger.fine(() -> "Found most recent backup for server: \"" + backupDir.getName() + "\" last modified: " + sdfPretty.format(lastModified));
+				backupMap.put(backupDir, lastModified);
+			}
+		}
+	}
 	
+	private void compareServerAndBackupTimestamps() {
+		logger.fine("Checking which servers need to be backed up.");
+		Date backupLastModified;
+		for (Map.Entry<File, Date> entry : serverMap.entrySet()) {
+			File serverFile = entry.getKey();
+			Date serverLastModified = entry.getValue();
+			
+			backupLastModified = backupMap.get(generateBackupFileFromString(serverFile.getName(), pathToBackups));
+			if (serverLastModified.compareTo(backupLastModified) > 0) {
+				logger.fine("Server \"" + serverFile.getName() + "\" needs to be backed up.");
+				serversToBackup.add(serverFile);
+			}
+		}
+	}
+
 	/**
 	 * Iterates through the servers that need to be backed up.
 	 */
@@ -308,10 +321,8 @@ public class Main {
 	public static Date lastModifiedInFolder(File file) {
 		Wrapper mostRecentTime = new Wrapper();
 		try {
-			Files.find(
-					file.toPath(),
-					Integer.MAX_VALUE,
-					(filePath, fileAttr) -> true).forEach(x -> {
+			Files.find(file.toPath(), Integer.MAX_VALUE, (filePath, fileAttr) -> true)
+					.forEach(x -> {
 						if (mostRecentTime.getValue() < x.toFile().lastModified())
 							mostRecentTime.setValue(x.toFile().lastModified());
 					});

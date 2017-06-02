@@ -41,6 +41,8 @@ public class BackupUtilityApplication {
 	private HashMap<File, Date> backupMap = new HashMap<>();
 	private ArrayList<File> serversToBackup = new ArrayList<>();
 	
+	private long mostRecentTime;
+	
 	// Defined as non-static to promote thread safety
 	private final SimpleDateFormat sdfPretty = new SimpleDateFormat("MMM dd yyyy - hh:mm:ss z");
 	
@@ -51,6 +53,7 @@ public class BackupUtilityApplication {
 	private static final String ENABLE_PRUNING = "enablePruning";
 	private static final String PRUNING_THRESHOLD = "pruningThreshold";
 	
+	// Define other literals
 	private static final String CONFIG_NAME = "config.ini";
 	
 	private static final Logger logger = LoggerManager.getInstance().getLogger("main");
@@ -102,7 +105,7 @@ public class BackupUtilityApplication {
 		if ("".equals(properties.getProperty(SERVERS_DIRECTORY)) || "".equals(properties.getProperty(BACKUPS_DIRECTORY))) {
 			// TODO: Add GUI and explanation of how to set up for no GUI
 			logger.severe("Invalid directory configuration set.");
-			logger.severe( () -> "Edit config.ini and specify the " + SERVERS_DIRECTORY + " and " + BACKUPS_DIRECTORY + ".");
+			logger.severe( () -> "Edit " + CONFIG_NAME + " and specify the " + SERVERS_DIRECTORY + " and " + BACKUPS_DIRECTORY + ".");
 			crashProgram();
 		}
 		
@@ -168,6 +171,9 @@ public class BackupUtilityApplication {
 		backupList = backupsDirectory.listFiles(File::isDirectory);
 	}
 	
+	/**
+	 * Verifies that {@link #serverDirectory} points to an existing directory and sets up and verifies the usability of the directory pointed to by {@link #backupsDirectory}.
+	 */
 	private void checkDirectories() {
 		// Check if servers directory exists
 		logger.fine("Checking for valid server file structure.");
@@ -318,20 +324,20 @@ public class BackupUtilityApplication {
 	 * 
 	 * @return
 	 */
-	public static Date lastModifiedInFolder(File file) {
-		Wrapper mostRecentTime = new Wrapper();
+	public Date lastModifiedInFolder(File file) {
+		mostRecentTime = 0L;
 		try {
 			Files.find(file.toPath(), Integer.MAX_VALUE, (filePath, fileAttr) -> true)
 					.forEach(x -> {
-						if (mostRecentTime.getValue() < x.toFile().lastModified())
-							mostRecentTime.setValue(x.toFile().lastModified());
+						if (mostRecentTime < x.toFile().lastModified())
+							mostRecentTime = x.toFile().lastModified();
 					});
 		} catch (IOException e) {
 			logger.log(Level.SEVERE, "Exception caught while scanning a server directory for most recently modified file: ", e);
 			crashProgram();
 		}
 		
-		return new Date(mostRecentTime.getValue());
+		return new Date(mostRecentTime);
 	}
 	
 	/**

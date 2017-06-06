@@ -8,24 +8,32 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.logging.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import io.github.talkarcabbage.logger.LoggerManager;
 
 public class BackupUtilityApplicationTest {
 	
-	private File tempDirectory = new File("temp");
+	private static final Logger logger = LoggerManager.getInstance().getLogger("test");
+	
+	private static File tempDirectory = new File("temp");
 	
 	@Before
 	public void setUp() {
 		// In case the temp directory already exists, delete it
-		deleteFileOrFolder(tempDirectory);
+		if (tempDirectory.exists()) {
+			deleteFileOrFolder(tempDirectory);
+		}
 		
 		// Create a temp directory
 		if (!tempDirectory.mkdir()) {
-			fail("Unable to create a new temporary directory to test in.");
+			logger.severe("Unable to create a new temporary directory to test in.");
+			fail();
 		}
+		
 	}
 	
 	@After
@@ -40,7 +48,10 @@ public class BackupUtilityApplicationTest {
 				deleteFileOrFolder(f);
 			}
 		}
-		file.delete();
+		if (!file.delete()) {
+			logger.severe("Unable to delete file: " + file.getName());
+			fail();
+		}
 	}
 	
 	/*
@@ -95,37 +106,31 @@ public class BackupUtilityApplicationTest {
 	@Ignore
 	@Test
 	public void testConfigSetup() {
-		fail("Not yet implemented");
+		fail("Not yet implemented"); // NOSONAR
 	}
 	
 	@Ignore
 	@Test
 	public void testLoadConfig() {
-		fail("Not yet implemented");
+		fail("Not yet implemented"); // NOSONAR
 	}
 	
 	@Ignore
 	@Test
 	public void testSaveConfig() {
-		fail("Not yet implemented");
+		fail("Not yet implemented"); // NOSONAR
 	}
 	
 	@Ignore
 	@Test
 	public void testDetermineServersToBackup() {
-		fail("Not yet implemented");
-	}
-	
-	@Ignore
-	@Test
-	public void testGenerateBackupFileFromString() {
-		fail("Not yet implemented");
+		fail("Not yet implemented"); // NOSONAR
 	}
 	
 	@Ignore
 	@Test
 	public void testLastModifiedInFolder() {
-		fail("Not yet implemented");
+		fail("Not yet implemented"); // NOSONAR
 	}
 	
 	/*
@@ -133,9 +138,9 @@ public class BackupUtilityApplicationTest {
 	 */
 	
 	@Test
-	public void testGetLatestBackup1() {
+	public void testGetLatestBackup1() throws IOException {
 		ArrayList<String> backupNames = new ArrayList<>();
-		backupNames.add("Backup_2000-01-01_00-00-00.zip");
+		backupNames.add("Backup_2000-01-01_00-00-00.zip"); // NOSONAR
 		backupNames.add("Backup_2001-01-01_00-00-00.zip");
 		backupNames.add("Backup_2002-01-01_00-00-00.zip");
 		backupNames.add("Backup_2003-01-01_00-00-00.zip");
@@ -151,9 +156,9 @@ public class BackupUtilityApplicationTest {
 	}
 	
 	@Test
-	public void testGetLatestBackup2() {
+	public void testGetLatestBackup2() throws IOException {
 		ArrayList<String> backupNames = new ArrayList<>();
-		backupNames.add("Backup_2000-01-01_00-00-00.zip");
+		backupNames.add("Backup_2000-01-01_00-00-00.zip"); // NOSONAR
 		backupNames.add("Backup_2000-02-01_00-00-00.zip");
 		backupNames.add("Backup_2000-03-01_00-00-00.zip");
 		backupNames.add("Backup_2000-04-01_00-00-00.zip");
@@ -169,9 +174,9 @@ public class BackupUtilityApplicationTest {
 	}
 	
 	@Test
-	public void testGetLatestBackup3() {
+	public void testGetLatestBackup3() throws IOException {
 		ArrayList<String> backupNames = new ArrayList<>();
-		backupNames.add("Backup_2000-01-01_00-00-00.zip");
+		backupNames.add("Backup_2000-01-01_00-00-00.zip"); // NOSONAR
 		backupNames.add("Backup_2000-01-02_00-00-00.zip");
 		backupNames.add("Backup_2000-01-03_00-00-00.zip");
 		backupNames.add("Backup_2000-01-04_00-00-00.zip");
@@ -187,9 +192,9 @@ public class BackupUtilityApplicationTest {
 	}
 	
 	@Test
-	public void testGetLatestBackup4() {
+	public void testGetLatestBackup4() throws IOException {
 		ArrayList<String> backupNames = new ArrayList<>();
-		backupNames.add("Backup_2000-01-01_00-00-00.zip");
+		backupNames.add("Backup_2000-01-01_00-00-00.zip"); // NOSONAR
 		backupNames.add("Backup_2000-01-01_01-00-00.zip");
 		backupNames.add("Backup_2000-01-01_02-00-00.zip");
 		backupNames.add("Backup_2000-01-01_03-00-00.zip");
@@ -205,9 +210,9 @@ public class BackupUtilityApplicationTest {
 	}
 	
 	@Test
-	public void testGetLatestBackup5() {
+	public void testGetLatestBackup5() throws IOException {
 		ArrayList<String> backupNames = new ArrayList<>();
-		backupNames.add("Backup_2000-01-01_00-00-00.zip");
+		backupNames.add("Backup_2000-01-01_00-00-00.zip"); // NOSONAR
 		backupNames.add("Backup_2000-01-01_00-01-00.zip");
 		backupNames.add("Backup_2000-01-01_00-02-00.zip");
 		backupNames.add("Backup_2000-01-01_00-03-00.zip");
@@ -223,9 +228,9 @@ public class BackupUtilityApplicationTest {
 	}
 	
 	@Test
-	public void testGetLatestBackup6() {
+	public void testGetLatestBackup6() throws IOException {
 		ArrayList<String> backupNames = new ArrayList<>();
-		backupNames.add("Backup_2000-01-01_00-00-00.zip");
+		backupNames.add("Backup_2000-01-01_00-00-00.zip"); // NOSONAR
 		backupNames.add("Backup_2000-01-01_00-00-01.zip");
 		backupNames.add("Backup_2000-01-01_00-00-02.zip");
 		backupNames.add("Backup_2000-01-01_00-00-03.zip");
@@ -240,13 +245,11 @@ public class BackupUtilityApplicationTest {
 		assertTrue(expected.equals(actual));
 	}
 	
-	private void makeFileInTempDirectory(String fileName) {
+	private void makeFileInTempDirectory(String fileName) throws IOException {
 		File file = new File(tempDirectory, fileName);
-		try {
-			file.createNewFile();
-		} catch (IOException e) {
-			fail("Unable to create file " + fileName + " in temp directory.");
-			e.printStackTrace();
+		if (!file.createNewFile()) {
+			logger.severe("File " + file.getName() + " already exists.");
+			fail();
 		}
 	}
 	
@@ -277,7 +280,17 @@ public class BackupUtilityApplicationTest {
 	@Ignore
 	@Test
 	public void testBackupSpecificServer() {
-		fail("Not yet implemented");
+		fail("Not yet implemented"); // NOSONAR
+	}
+	
+	/*
+	 * Test the functionality of runBackupUtility()
+	 */
+
+	@Ignore
+	@Test
+	public void runBackupUtility() {
+		fail("Not yet implemented"); // NOSONAR
 	}
 	
 }

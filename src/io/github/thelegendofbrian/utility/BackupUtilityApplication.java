@@ -27,7 +27,6 @@ public class BackupUtilityApplication {
 	private File configFile;
 	private Properties properties;
 	
-	private String pathToServers;
 	private String pathToBackups;
 	private File serversDirectory;
 	private File backupsDirectory;
@@ -113,6 +112,7 @@ public class BackupUtilityApplication {
 		LoggerManager.getInstance().setGlobalLoggingLevel(Level.parse(properties.getProperty(LOG_LEVEL)));
 		logger.fine("Logging level found in config: " + properties.getProperty(LOG_LEVEL));
 		
+		String pathToServers;
 		pathToServers = properties.getProperty(SERVERS_DIRECTORY);
 		serversDirectory = new File(pathToServers);
 		logger.fine("Servers directory found in config: " + serversDirectory.getAbsolutePath());

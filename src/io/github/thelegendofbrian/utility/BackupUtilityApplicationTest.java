@@ -59,48 +59,16 @@ public class BackupUtilityApplicationTest {
 	 */
 	
 	@Test
-	public void testRoundDateToSeconds1() {
-		long unroundedMillis = 1495407727000L;
-		Date unroundedDate = new Date(unroundedMillis);
-		Date roundedDate = BackupUtilityApplication.roundDateToSeconds(unroundedDate);
-		long roundedMillis = roundedDate.getTime();
-		assertEquals(1495407727000L, roundedMillis);
-	}
-	
-	@Test
-	public void testRoundDateToSeconds2() {
-		long unroundedMillis = 1495407727034L;
-		Date unroundedDate = new Date(unroundedMillis);
-		Date roundedDate = BackupUtilityApplication.roundDateToSeconds(unroundedDate);
-		long roundedMillis = roundedDate.getTime();
-		assertEquals(1495407727000L, roundedMillis);
-	}
-	
-	@Test
-	public void testRoundDateToSeconds3() {
-		long unroundedMillis = 1495407727067L;
-		Date unroundedDate = new Date(unroundedMillis);
-		Date roundedDate = BackupUtilityApplication.roundDateToSeconds(unroundedDate);
-		long roundedMillis = roundedDate.getTime();
-		assertEquals(1495407727000L, roundedMillis);
-	}
-	
-	@Test
-	public void testRoundDateToSeconds4() {
-		long unroundedMillis = 1495407727167L;
-		Date unroundedDate = new Date(unroundedMillis);
-		Date roundedDate = BackupUtilityApplication.roundDateToSeconds(unroundedDate);
-		long roundedMillis = roundedDate.getTime();
-		assertEquals(1495407727000L, roundedMillis);
-	}
-	
-	@Test
-	public void testRoundDateToSeconds5() {
-		long unroundedMillis = 0L;
-		Date unroundedDate = new Date(unroundedMillis);
-		Date roundedDate = BackupUtilityApplication.roundDateToSeconds(unroundedDate);
-		long roundedMillis = roundedDate.getTime();
-		assertEquals(0L, roundedMillis);
+	public void testRoundDateToSeconds() {
+		final long[] TIMES = {0L, 1495407727000L, 1495407727067L, 1495407727500L};
+		final long[] EXPECTED_TIMES = {0L, 1495407727000L, 1495407727000L, 1495407728000L};
+		Date roundCheck = new Date(0L);
+		for (int i = 0; i < 3; i++) {
+			roundCheck.setTime(TIMES[i]);
+			roundCheck = BackupUtilityApplication.roundDateToSeconds(roundCheck);
+			long roundedTime = roundCheck.getTime();
+			assertEquals(EXPECTED_TIMES[i], roundedTime);
+		}
 	}
 	
 	@Ignore

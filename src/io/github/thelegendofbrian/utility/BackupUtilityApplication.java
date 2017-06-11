@@ -24,38 +24,38 @@ import io.github.talkarcabbage.logger.LoggerManager;
 
 public class BackupUtilityApplication {
 	
-	private File configFile;
-	private Properties properties;
+	protected File configFile;
+	protected Properties properties;
 	
-	private String pathToBackups;
-	private File serversDirectory;
-	private File backupsDirectory;
+	protected String pathToBackups;
+	protected File serversDirectory;
+	protected File backupsDirectory;
 	
-	private File[] serverList;
-	private File[] backupList;
+	protected File[] serverList;
+	protected File[] backupList;
 	
-	private Date lastModified;
+	protected Date lastModified;
 	
-	private HashMap<File, Date> serverMap = new HashMap<>();
-	private HashMap<File, Date> backupMap = new HashMap<>();
-	private ArrayList<File> serversToBackup = new ArrayList<>();
+	protected HashMap<File, Date> serverMap = new HashMap<>();
+	protected HashMap<File, Date> backupMap = new HashMap<>();
+	protected ArrayList<File> serversToBackup = new ArrayList<>();
 	
-	private long mostRecentTime;
+	protected static long mostRecentTime;
 	
 	// Defined as non-static to promote thread safety
-	private final SimpleDateFormat sdfPretty = new SimpleDateFormat("MMM dd yyyy - hh:mm:ss z");
+	protected final SimpleDateFormat sdfPretty = new SimpleDateFormat("MMM dd yyyy - hh:mm:ss z");
 	
 	// Define config property literals
-	private static final String SERVERS_DIRECTORY = "serversDirectory";
-	private static final String BACKUPS_DIRECTORY = "backupsDirectory";
-	private static final String LOG_LEVEL = "logLevel";
-	private static final String ENABLE_PRUNING = "enablePruning";
-	private static final String PRUNING_THRESHOLD = "pruningThreshold";
+	protected static final String SERVERS_DIRECTORY = "serversDirectory";
+	protected static final String BACKUPS_DIRECTORY = "backupsDirectory";
+	protected static final String LOG_LEVEL = "logLevel";
+	protected static final String ENABLE_PRUNING = "enablePruning";
+	protected static final String PRUNING_THRESHOLD = "pruningThreshold";
 	
 	// Define other literals
-	private static final String CONFIG_NAME = "config.ini";
+	protected static final String CONFIG_NAME = "config.ini";
 	
-	private static final Logger logger = LoggerManager.getInstance().getLogger("main");
+	protected static final Logger logger = LoggerManager.getInstance().getLogger("main");
 	
 	public BackupUtilityApplication() {
 		sdfPretty.setTimeZone(TimeZone.getTimeZone("GMT"));
@@ -160,21 +160,21 @@ public class BackupUtilityApplication {
 	/**
 	 * Stores the list of directories in the servers directory into {@link #serversList}.
 	 */
-	private void storeServersDirectories() {
+	protected void storeServersDirectories() {
 		serverList = serversDirectory.listFiles(File::isDirectory);
 	}
 	
 	/**
 	 * Stores the list of directories in the backups directory into {@link #backupsList}.
 	 */
-	private void storeBackupsDirectories() {
+	protected void storeBackupsDirectories() {
 		backupList = backupsDirectory.listFiles(File::isDirectory);
 	}
 	
 	/**
 	 * Verifies that {@link #serverDirectory} points to an existing directory and sets up and verifies the usability of the directory pointed to by {@link #backupsDirectory}.
 	 */
-	private void checkDirectories() {
+	protected void checkDirectories() {
 		// Check if servers directory exists
 		logger.fine("Checking for valid server file structure.");
 		if (!serversDirectory.exists()) {
@@ -203,7 +203,7 @@ public class BackupUtilityApplication {
 	/**
 	 * Creates the backup folder directory structure based on the servers in the servers directory.
 	 */
-	private void createBackupDirectories() {
+	protected void createBackupDirectories() {
 		File serverBackupFolder;
 		for (File server : serverList) {
 			serverBackupFolder = new File(backupsDirectory.getAbsolutePath() + File.separator + server.getName());
@@ -216,7 +216,7 @@ public class BackupUtilityApplication {
 	/**
 	 * Finds the most recently changed file in each server directory and stores when it was last modified.
 	 */
-	private void storeEachServerLastModified() {
+	protected void storeEachServerLastModified() {
 		logger.fine("Checking when each server was last modified.");
 		
 		for (File serverDir : serverList) {
@@ -248,7 +248,7 @@ public class BackupUtilityApplication {
 	 * Stores the time stamps for the most recent backup for each server into {@link #backupMap}.
 	 * If the backup folder for a server is empty, the time stamp for the most recent backup is set to epoch time.
 	 */
-	private void parseBackupTimeStamps() {
+	protected void parseBackupTimeStamps() {
 		for (File backupDir : backupList) {
 			// If the backup directory for a server is empty, make a backup for that server
 			if (backupDir.list().length == 0) {
@@ -262,7 +262,7 @@ public class BackupUtilityApplication {
 		}
 	}
 	
-	private void compareServerAndBackupTimestamps() {
+	protected void compareServerAndBackupTimestamps() {
 		logger.fine("Checking which servers need to be backed up.");
 		Date backupLastModified;
 		for (Map.Entry<File, Date> entry : serverMap.entrySet()) {
@@ -280,7 +280,7 @@ public class BackupUtilityApplication {
 	/**
 	 * Iterates through the servers that need to be backed up.
 	 */
-	private void backupServers() {
+	protected void backupServers() {
 		if (serversToBackup.isEmpty()) {
 			logger.info("All backups were already up-to-date.");
 		} else {
@@ -324,7 +324,7 @@ public class BackupUtilityApplication {
 	 * 
 	 * @return
 	 */
-	public Date lastModifiedInFolder(File file) {
+	public static Date lastModifiedInFolder(File file) {
 		mostRecentTime = 0L;
 		try {
 			Files.find(file.toPath(), Integer.MAX_VALUE, (filePath, fileAttr) -> true)

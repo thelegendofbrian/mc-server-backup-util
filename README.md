@@ -22,7 +22,7 @@ MinecraftServers
 The backup folder follows the same structure as the servers, however the individual server directories contain zipped backups:
 
 ```
-MinecraftServers
+MinecraftBervers
 ├───Vanilla-1.11.2
 │   ├───Vanilla-1.11.2_2017-05-21_23-00-00.zip
 │   ├───Vanilla-1.11.2_2017-05-20_23-00-00.zip
